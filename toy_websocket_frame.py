@@ -39,20 +39,23 @@ class WebsocketFrame:
         # just running it locally.
         if payload_length == 126:
             # If the length is 126, then the length also includes the next 2
-            # bytes.
-            payload_length = int.from_bytes(data_in_bytes[1:4],
-                                            byteorder='big')
+            # bytes. Also parse length into first length byte to get rid of
+            # mask bit.
+            payload_length = int.from_bytes(
+                (bytes(payload_length) + data_in_bytes[2:4]),
+                byteorder='big')
             # This will also mean the mask is offset by 2 additional bytes.
             mask_key_start = 4
         elif payload_length == 127:
             # If the length is 127, then the length also includes the next 8
-            # bytes
-            payload_length = int.from_bytes(data_in_bytes[1:9],
-                                            byteorder='big')
+            # bytes. Also parse length into first length byte to get rid of
+            # mask bit.
+            payload_length = int.from_bytes(
+                (bytes(payload_length) + data_in_bytes[2:9]),
+                byteorder='big')
             # This will also mean the mask is offset by 8 additional bytes.
             mask_key_start = 10
         self._payload_length = payload_length
-        print(payload_length)
         self._mask_key_start = mask_key_start
 
     def _maybe_parse_masking_key(self, data_in_bytes):
