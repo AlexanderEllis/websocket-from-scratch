@@ -9,6 +9,13 @@ TCP_IP = '127.0.0.1'
 TCP_PORT = 5006
 BUFFER_SIZE = 1024 * 1024
 
+DEFAULT_HTTP_RESPONSE = (
+    b'''<HTML><HEAD><meta http-equiv="content-type" content="text/html;charset=utf-8">\r\n
+<TITLE>200 OK</TITLE></HEAD><BODY>\r\n
+<H1>200 OK</H1>\r\n
+Welcome to the default.\r\n
+</BODY></HTML>\r\n\r\n''')
+
 
 def main():
     '''
@@ -76,16 +83,37 @@ def handle_request(client_socket, input_sockets):
     print('Received message:')
     print(message)
 
-    # For now, just return a 404
-    client_socket.send(b'HTTP/1.1 404 Not Found\r\n\r\n')
+    (method, target, http_version, headers_map) = parse_request(message)
+
+    print('method, target, http_version:', method, target, http_version)
+    print('headers:')
+    print(headers_map)
+
+    # For now, just return a 200. Should probably return length too, eh
+    client_socket.send(b'HTTP/1.1 200 OK\r\n\r\n' + DEFAULT_HTTP_RESPONSE)
     close_socket(client_socket, input_sockets)
+
+
+# Parses the first line and headers from the request.
+def parse_request(request):
+    headers_map = {}
+    # Assume headers and body are split by '\r\n\r\n' and we always have them.
+    # Also assume all headers end with'\r\n'.
+    # Also assume it starts with the method.
+    split_request = request.split('\r\n\r\n')[0].split('\r\n')
+    [method, target, http_version] = split_request[0].split(' ')
+    headers = split_request[1:]
+    for header_entry in headers:
+        [header, value] = header_entry.split(': ')
+        # Headers are case insensitive, so we can just keep track in lowercase.
+        headers_map[header.lower()] = value
+    return (method, target, http_version, headers_map)
 
 
 def close_socket(client_socket, input_sockets):
     input_sockets.remove(client_socket)
     client_socket.close()
     return
-
 
 
 if __name__ == '__main__':
