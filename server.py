@@ -7,6 +7,8 @@ import hashlib
 import select
 import socket
 
+import toy_websocket_frame
+
 TCP_IP = '127.0.0.1'
 TCP_PORT = 5006
 BUFFER_SIZE = 1024 * 1024
@@ -58,7 +60,7 @@ def main():
                 print('Handling main door socket')
                 handle_new_connection(tcp_socket, input_sockets)
             elif ready_socket in ws_sockets:
-                print('this is where we would handle the websocket message')
+                print('Handling websocket message')
                 handle_websocket_message(ready_socket, input_sockets,
                                          ws_sockets)
             else:
@@ -76,16 +78,15 @@ def handle_new_connection(main_door_socket, input_sockets):
 
 
 def handle_websocket_message(client_socket, input_sockets, ws_sockets):
-    print('Handling WS message from client socket:', client_socket.fileno())
-    message = b''
-    # We can start by reading as much as we can
-    while True:
-        data_in_bytes = client_socket.recv(BUFFER_SIZE)
-        print('received', len(data_in_bytes), 'bytes')
-        # TODO: check payload length and see if we're done reading
-        if len(data_in_bytes) == 0:
-            close_socket(client_socket, input_sockets, ws_sockets)
-            return
+    # Let's assume that we get a full single frame in each recv (may not
+    # be true IRL)
+    data_in_bytes = client_socket.recv(BUFFER_SIZE)
+
+    websocket_frame = toy_websocket_frame.WebsocketFrame()
+    websocket_frame.populateFromWebsocketFrameMessage(data_in_bytes)
+
+    print('Received message:', websocket_frame.get_payload_data().decode('utf-8'))
+    return
 
 
 def handle_request(client_socket, input_sockets, ws_sockets):
